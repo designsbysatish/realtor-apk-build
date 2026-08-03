@@ -1,4 +1,4 @@
-name: Build Android APK From ZIP
+name: Build Android APK Final
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -7,12 +7,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Extract ZIP File
+      - name: Extract and Deep Find Project
         run: |
-          sudo apt-get install unzip
+          sudo apt-get install unzip -y
           unzip *.zip -d extracted_project
-          # नीचे दी गई लाइन अंदरूनी फोल्डर की फाइलों को बाहर मुख्य जगह पर ले आएगी
-          mv extracted_project/*/* . 2>/dev/null || mv extracted_project/* . 2>/dev/null || true
+          
+          # यह कमांड पूरे फोल्डर में जहां भी gradlew फाइल होगी उसे ढूंढकर मुख्य जगह ले आएगा
+          GRADLEW_PATH=$(find extracted_project -name "gradlew" -print -quit)
+          PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
+          echo "Project found at: $PROJECT_ROOT"
+          
+          # सभी फाइलों को मुख्य डायरेक्टरी में ट्रांसफर करें
+          cp -r $PROJECT_ROOT/. .
+          rm -rf extracted_project
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -22,7 +29,6 @@ jobs:
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
-        continue-on-error: true
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
@@ -33,5 +39,5 @@ jobs:
           name: Mobile-App-APK
           path: |
             **/build/outputs/apk/debug/*.apk
-            app/build/outputs/apk/debug/*.apk
+            
             
