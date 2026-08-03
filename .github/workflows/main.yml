@@ -1,4 +1,4 @@
-name: Build Android APK Final Fix
+name: Build Android Master APK
 on: [push, workflow_dispatch]
 jobs:
   build:
@@ -7,7 +7,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Extract Project Smartly
+      - name: Extract Project
         run: |
           sudo apt-get install unzip -y
           unzip -o *.zip -d .
@@ -19,24 +19,19 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Grant Execute Permission for Gradlew
+      - name: Generate Missing Gradle Wrapper
         run: |
-          if [ -f "./gradlew" ]; then
-            chmod +x gradlew
-          else
-            find . -name "gradlew" -exec chmod +x {} \;
-          fi
+          # अगर gradlew फाइल नहीं है, तो यह खुद नया ग्रैडल सेटअप तैयार कर देगा
+          PROJECT_DIR=$(find . -name "build.gradle.kts" -o -name "build.gradle" -print -quit | xargs dirname)
+          cd $PROJECT_DIR
+          gradle wrapper --gradle-version 8.2
+          chmod +x gradlew
 
       - name: Build Debug APK
         run: |
-          if [ -f "./gradlew" ]; then
-            ./gradlew assembleDebug
-          else
-            GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
-            PROJECT_ROOT=$(dirname "$GRADLEW_PATH")
-            cd $PROJECT_ROOT
-            ./gradlew assembleDebug
-          fi
+          PROJECT_DIR=$(find . -name "build.gradle.kts" -o -name "build.gradle" -print -quit | xargs dirname)
+          cd $PROJECT_DIR
+          ./gradlew assembleDebug
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
